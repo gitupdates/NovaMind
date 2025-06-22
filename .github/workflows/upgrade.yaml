@@ -1,0 +1,38 @@
+name: NovaMind Upgrade Cycle
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-and-benchmark:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run core validation
+        run: |
+          python engine/engine.py --validate-all
+
+      - name: Run benchmark
+        run: |
+          python engine/engine_benchmark_overlay.py --diff-check
+
+      - name: Package Docker
+        run: |
+          docker build -t novamind .
+
+      - name: Upload Docker Image (optional)
+        run: echo "Use ghcr.io or Docker Hub if required"
