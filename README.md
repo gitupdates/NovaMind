@@ -35,3 +35,11 @@ NovaMind/
 ├── python_code_assistant.py         # Console tool for executing and improving code snippets
 ├── README.md                        # Project overview and usage
 └── app.py                           # Entrypoint: registers GUI and/or dashboard modules
+
+## Python Code Assistant
+
+`python_code_assistant.py` offers an interactive shell for testing and refining
+small Python snippets. It runs the provided code in isolation, reports errors,
+applies simple compatibility corrections (like converting `print` statements and
+`xrange` usage), formats code with `autopep8` when available, and highlights
+modern best practices.

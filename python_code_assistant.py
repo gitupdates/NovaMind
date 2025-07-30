@@ -9,6 +9,7 @@ except ImportError:  # pragma: no cover - optional dependency
     autopep8 = None
     logging.warning("autopep8 is not installed. Formatting suggestions will be skipped.")
 import ast
+import re
 from typing import Dict, Any, List
 
 # Configure logging to show information messages.
@@ -122,6 +123,38 @@ def error_correct_code_suggestion(execution_result: Dict[str, Any]) -> str:
     suggestion += "\n\nFor more in-depth information on specific errors, refer to the official Python Language Reference: [https://docs.python.org/3/reference/index.html](https://docs.python.org/3/reference/index.html)"
     return suggestion
 
+
+def apply_code_corrections(code_string: str) -> Dict[str, Any]:
+    """Return a corrected version of ``code_string`` and a list of fixes applied."""
+    corrected = code_string
+    applied: List[str] = []
+
+    # Python 2 style print statements -> functions
+    print_stmt = re.compile(r"^\s*print\s+(?!\()(.*)$", re.MULTILINE)
+    if print_stmt.search(corrected):
+        corrected = print_stmt.sub(lambda m: f"print({m.group(1)})", corrected)
+        applied.append("Converted Python 2 style print statements to function calls")
+
+    # xrange/raw_input to range/input
+    if "xrange(" in corrected:
+        corrected = corrected.replace("xrange", "range")
+        applied.append("Replaced `xrange` with `range` for Python 3 compatibility")
+    if "raw_input(" in corrected:
+        corrected = corrected.replace("raw_input", "input")
+        applied.append("Replaced `raw_input` with `input` for Python 3 compatibility")
+
+    # Apply autopep8 formatting if available
+    if autopep8 is not None:
+        try:
+            formatted = autopep8.fix_code(corrected)
+            if formatted != corrected:
+                corrected = formatted
+                applied.append("Applied autopep8 formatting")
+        except Exception as exc:  # pragma: no cover - formatting tool failure
+            logging.warning("autopep8 failed during correction: %s", exc)
+
+    return {"code": corrected, "fixes": applied}
+
 def improve_code_suggestion(code_string: str) -> Dict[str, str]:
     """
     Provides suggestions for improving Python code based on common best practices
@@ -186,10 +219,20 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
                 if isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Call):
                     if isinstance(node.body[0].value.func, ast.Attribute) and node.body[0].value.func.attr == 'append':
                         improvements["refactoring_suggestion"] = improvements.get("refactoring_suggestion", "") + \
-                            "If you are building a list using a `for` loop and `.append()`, consider using a more concise **list comprehension** for better readability and often performance."
-                        break # Only suggest once per code block
+                            "If you are building a list using a `for` loop and `.append()`, consider using a more concise **list comprehension** for better readability and performance."
+                        break  # Only suggest once per code block
 
-        # 4. File Handling Suggestion (using 'with' statement)
+        # 4. Suggest using enumerate instead of range(len(...))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.For) and isinstance(node.iter, ast.Call):
+                if isinstance(node.iter.func, ast.Name) and node.iter.func.id == "range":
+                    if len(node.iter.args) == 1 and isinstance(node.iter.args[0], ast.Call):
+                        inner = node.iter.args[0]
+                        if isinstance(inner.func, ast.Name) and inner.func.id == "len":
+                            improvements["enumerate_suggestion"] = "Use `enumerate()` to iterate with indices instead of `range(len(...))`."
+                            break
+
+        # 5. File Handling Suggestion (using 'with' statement)
         if "open(" in code_string and ".close()" in code_string and "with open" not in code_string:
              improvements["file_handling_suggestion"] = "When working with files, always use a `with open(...)` statement. It ensures the file is properly closed even if errors occur, preventing resource leaks."
 
@@ -198,6 +241,18 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
     except Exception as e:
         improvements["analysis_warning"] = f"An error occurred during code analysis: {e}"
         logging.warning(f"AST analysis failed: {e}")
+
+    # Compatibility and modern Python suggestions (run even if AST analysis failed)
+    if "xrange(" in code_string:
+        improvements["compatibility_suggestion"] = improvements.get("compatibility_suggestion", "") + "Replace `xrange` with `range` for Python 3 compatibility. "
+    if "raw_input(" in code_string:
+        improvements["compatibility_suggestion"] = improvements.get("compatibility_suggestion", "") + "Replace `raw_input` with `input`. "
+    if re.search(r"^\s*print\s+[^()]+", code_string, re.MULTILINE):
+        improvements["compatibility_suggestion"] = improvements.get("compatibility_suggestion", "") + "Use `print()` function syntax for Python 3. "
+    if ".format(" in code_string:
+        improvements["fstring_suggestion"] = "Consider using f-strings for clearer formatting (Python 3.6+)."
+    if "os.path" in code_string:
+        improvements["pathlib_suggestion"] = "Consider using `pathlib.Path` for path manipulations."
 
     # 5. Dependency Management Reminder (always relevant)
     improvements["dependency_reminder"] = "Remember to manage your project dependencies using a `requirements.txt` file or a tool like `poetry` or `pipenv`. Always install dependencies in a **virtual environment** to avoid conflicts."
@@ -264,6 +319,15 @@ def main() -> None:
 
         print("\n--- Error Correction Suggestions ---")
         print(error_correct_code_suggestion(execution_result))
+
+        corrections = apply_code_corrections(user_code)
+        if corrections["fixes"]:
+            print("\n--- Automated Code Corrections ---")
+            print("```python")
+            print(corrections["code"])
+            print("```")
+            for fix in corrections["fixes"]:
+                print(f"- {fix}")
 
         print("\n--- Code Improvement Suggestions ---")
         improvement_suggestions = improve_code_suggestion(user_code)
