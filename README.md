@@ -32,5 +32,6 @@ NovaMind/
 ├── registry.json                    # Master config: core metadata, versions, capabilities
 ├── Dockerfile                       # Containerized deployment build script
 ├── requirements.txt                 # Python dependencies
+├── python_code_assistant.py         # Console tool for executing and improving code snippets
 ├── README.md                        # Project overview and usage
 └── app.py                           # Entrypoint: registers GUI and/or dashboard modules

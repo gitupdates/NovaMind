@@ -1,7 +1,13 @@
+"""Interactive helper for executing and improving Python snippets."""
+
 import io
 import sys
 import logging
-import autopep8
+try:
+    import autopep8
+except ImportError:  # pragma: no cover - optional dependency
+    autopep8 = None
+    logging.warning("autopep8 is not installed. Formatting suggestions will be skipped.")
 import ast
 from typing import Dict, Any, List
 
@@ -9,386 +15,6 @@ from typing import Dict, Any, List
 # This helps in debugging the assistant's own operations.
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
-# This list contains comprehensive Python knowledge,
-# ready to be conceptually leveraged by the AI chatbot. It covers
-# foundational concepts, syntax, style, error handling,
-# testing, security, performance, documentation, tooling,
-# and packaging, enabling the AI to perfect its coding skills.
-# In a real-world AI system, this knowledge would be part of the
-# model's training data or dynamically retrieved based on context.
-python_knowledge_corpus: List[Dict[str, str]] = [
-    {
-        "id": "foundations_modular_dry_naming",
-        "content": """
-        ## Foundations: Writing Functional Code
-        Start with clean design principles:
-
-        * **Modular Structure:** Break code into functions and classes for reuse and clarity.
-        * **DRY Principle (“Don’t Repeat Yourself”):** Eliminate duplication; abstract logic into reusable components.
-        * **Descriptive Naming:** Use clear, meaningful names for variables, functions, and modules.
-        """
-    },
-    {
-        "id": "core_syntax_keywords",
-        "content": """
-        ## Core Language Components: Syntax & Keywords
-        Python's fundamental building blocks: `if`, `for`, `while`, `class`, `def`, `return`, `yield`, `global`, `nonlocal`, `try`, `except`, `finally`, `raise`, `import`, `from`, `as`, `lambda`, `pass`, `break`, `continue`.
-        """
-    },
-    {
-        "id": "core_built_in_data_types",
-        "content": """
-        ## Core Language Components: Built-in Data Types
-        * **Numeric:** `int`, `float`, `complex`
-        * **Sequence:** `list`, `tuple`, `range`
-        * **Text:** `str`
-        * **Set types:** `set`, `frozenset`
-        * **Mappings:** `dict`
-        * **Boolean:** `bool`
-        * **Binary:** `bytes`, `bytearray`
-        """
-    },
-    {
-        "id": "core_operators",
-        "content": """
-        ## Core Language Components: Operators
-        * **Arithmetic:** (`+`, `-`, `*`, `/`, `//`, `%`, `**`)
-        * **Logical:** (`and`, `or`, `not`)
-        * **Comparison:** (`==`, `!=`, `>`, `<`, `>=`, `<=`)
-        * **Assignment:** (`=`, `+=`, etc.)
-        * **Identity:** (`is`, `is not`)
-        * **Membership:** (`in`, `not in`)
-        """
-    },
-    {
-        "id": "core_control_flow",
-        "content": """
-        ## Core Language Components: Control Flow
-        `if`, `elif`, `else`, `for` loops, `while` loops, `break`, `continue`, `pass`.
-        Best practices for looping (e.g., using `enumerate`, `zip`).
-        """
-    },
-    {
-        "id": "core_exception_handling",
-        "content": """
-        ## Core Language Components: Exception Handling
-        `try`, `except`, `finally`, `raise`.
-        Specific exception types (`ValueError`, `TypeError`, `FileNotFoundError`, `IndexError`, `KeyError`, `ZeroDivisionError`).
-        Custom exceptions.
-        Best practices for handling exceptions (e.g., catching specific exceptions, logging, re-raising).
-        """
-    },
-    {
-        "id": "core_functions",
-        "content": """
-        ## Core Language Components: Functions
-        Definition (`def`), `lambda` expressions, parameters, arguments (positional, keyword, default, `*args`, `**kwargs`), `return` values, `yield` (for generators), `global`, `nonlocal`.
-        **Docstrings (PEP 257)** and **type hints (PEP 484)**.
-        Function purity and side effects.
-        """
-    },
-    {
-        "id": "core_classes_oop",
-        "content": """
-        ## Core Language Components: Classes & OOP
-        `class` definition, objects, `inheritance`, `super()`, **dunder methods** (`__init__`, `__str__`, `__len__`, `__call__`, etc.), polymorphism, encapsulation, abstraction.
-        Instance vs. class variables, `@classmethod`, `@staticmethod`, properties.
-        Design patterns (e.g., Singleton, Factory, Strategy) in Python.
-        """
-    },
-    {
-        "id": "core_modules_imports",
-        "content": """
-        ## Core Language Components: Modules & Imports
-        `import`, `from ... import ...`, `as` keyword, `__init__.py`, package structure.
-        Structuring larger projects.
-        """
-    },
-    {
-        "id": "standard_library_file_io",
-        "content": """
-        ## Standard Library Modules: File I/O
-        **`os`**, **`io`**, **`shutil`**, **`pathlib`**.
-        """
-    },
-    {
-        "id": "standard_library_math_numbers",
-        "content": """
-        ## Standard Library Modules: Math & Numbers
-        **`math`**, **`decimal`**, **`fractions`**, **`random`**.
-        """
-    },
-    {
-        "id": "standard_library_dates_times",
-        "content": """
-        ## Standard Library Modules: Dates & Times
-        **`datetime`**, **`time`**, **`calendar`**.
-        """
-    },
-    {
-        "id": "standard_library_networking",
-        "content": """
-        ## Standard Library Modules: Networking
-        **`socket`**, **`http.client`**, **`urllib`**.
-        """
-    },
-    {
-        "id": "standard_library_data_handling",
-        "content": """
-        ## Standard Library Modules: Data Handling
-        **`json`**, **`csv`**, **`xml.etree`**, **`pickle`**, **`sqlite3`**.
-        """
-    },
-    {
-        "id": "standard_library_concurrency",
-        "content": """
-        ## Standard Library Modules: Concurrency
-        **`threading`**, **`multiprocessing`**, **`asyncio`**.
-        """
-    },
-    {
-        "id": "standard_library_testing",
-        "content": """
-        ## Standard Library Modules: Testing
-        **`unittest`**, **`doctest`**.
-        """
-    },
-    {
-        "id": "syntax_style_pep8",
-        "content": """
-        ## Syntax & Style: Ensuring Consistency - PEP 8 Compliance
-        Use spaces around operators, indentation (4 spaces), line length (<79 chars).
-        Tools: **`black`**, **`autopep8`**, **`isort`** for formatting and sorting imports.
-        """
-    },
-    {
-        "id": "syntax_style_type_hinting",
-        "content": """
-        ## Syntax & Style: Ensuring Consistency - Type Hinting
-        Helps readability and static analysis: `def add(x: int, y: int) -> int`.
-        Tools: **mypy**, **pytype**.
-        """
-    },
-    {
-        "id": "error_prevention_validation",
-        "content": """
-        ## Error Prevention & Handling - Validation
-        Validate inputs using `assert` statements or libraries like **`pydantic`**.
-        """
-    },
-    {
-        "id": "error_prevention_logging",
-        "content": """
-        ## Error Prevention & Handling - Logging
-        Use the **`logging`** module to record errors, warnings, and debug info.
-        """
-    },
-    {
-        "id": "testing_unit_frameworks",
-        "content": """
-        ## Testing & Code Quality - Unit Testing
-        Frameworks: **`pytest`**, **`unittest`**, **`nose2`**.
-        Best practices for writing effective unit tests (e.g., independent tests, fast execution, descriptive names, testing edge cases).
-        """
-    },
-    {
-        "id": "testing_coverage",
-        "content": """
-        ## Testing & Code Quality - Test Coverage
-        Use **`coverage.py`** to evaluate how much of your code is tested.
-        """
-    },
-    {
-        "id": "testing_ci_cd",
-        "content": """
-        ## Testing & Code Quality - CI/CD Integration
-        Automate tests on every change via **GitHub Actions**, **GitLab CI**, etc.
-        """
-    },
-    {
-        "id": "security_static_analysis",
-        "content": """
-        ## Security & Auditing - Static Analysis
-        Scan for vulnerabilities using tools like **`bandit`**, **`safety`**, or **`pip-audit`**.
-        Linters & Type Checkers: **`pylint`**, **`flake8`**, **`black`**, **`mypy`**.
-        `pyflakes` for unused variables.
-        """
-    },
-    {
-        "id": "security_dependency_checks",
-        "content": """
-        ## Security & Auditing - Dependency Checks
-        Keep packages up to date; review **CVEs** (Common Vulnerabilities and Exposures) tied to dependencies.
-        """
-    },
-    {
-        "id": "performance_profiling",
-        "content": """
-        ## Performance & Optimization - Profiling
-        Use **`cProfile`**, **`line_profiler`** to find bottlenecks.
-        """
-    },
-    {
-        "id": "performance_memory_efficiency",
-        "content": """
-        ## Performance & Optimization - Memory Efficiency
-        Use **generators** where appropriate, avoid unnecessary data copies.
-        """
-    },
-    {
-        "id": "performance_algorithmic_improvements",
-        "content": """
-        ## Performance & Optimization - Algorithmic Improvements
-        Choosing more efficient algorithms and data structures.
-        """
-    },
-    {
-        "id": "performance_vectorization",
-        "content": """
-        ## Performance & Optimization - Vectorization
-        Leveraging optimized C implementations for numerical operations (**NumPy/Pandas**).
-        """
-    },
-    {
-        "id": "performance_concurrency_parallelism",
-        "content": """
-        ## Performance & Optimization - Concurrency and Parallelism
-        * `threading` (for I/O bound tasks).
-        * `multiprocessing` (for CPU bound tasks, bypassing GIL).
-        * `asyncio` (for asynchronous I/O).
-        """
-    },
-    {
-        "id": "documentation_docstrings",
-        "content": """
-        ## Documentation & Comments - Docstrings
-        Add to functions/classes using **NumPy** or **Google style**.
-        """
-    },
-    {
-        "id": "documentation_inline_comments",
-        "content": """
-        ## Documentation & Comments - Inline Comments
-        Explain non-obvious logic or domain-specific decisions.
-        """
-    },
-    {
-        "id": "documentation_readme_api_docs",
-        "content": """
-        ## Documentation & Comments - README & API Docs
-        Use **MkDocs**, **Sphinx**, or **pdoc** for full documentation sets.
-        """
-    },
-    {
-        "id": "tooling_linters",
-        "content": """
-        ## Tooling for Project Health - Linters
-        **flake8**, **pylint**, **ruff** to catch code smells and enforce style.
-        """
-    },
-    {
-        "id": "tooling_virtual_environment",
-        "content": """
-        ## Tooling for Project Health - Virtual Environment
-        Use **venv** or **conda** to isolate dependencies.
-        """
-    },
-    {
-        "id": "tooling_version_control",
-        "content": """
-        ## Tooling for Project Health - Version Control
-        **Git** with branching strategies, semantic commit messages.
-        """
-    },
-    {
-        "id": "packaging_tools",
-        "content": """
-        ## Packaging & Publishing - Packaging Tools
-        **`setuptools`**, **`poetry`**, **`flit`** to build installable Python packages.
-        """
-    },
-    {
-        "id": "packaging_pyproject_toml",
-        "content": """
-        ## Packaging & Publishing - `pyproject.toml`
-        Modern way to define project metadata and build system.
-        `[project]` section (name, version, description, dependencies).
-        `[build-system]` (e.g., `setuptools`, `hatchling`).
-        """
-    },
-    {
-        "id": "packaging_building_distribution",
-        "content": """
-        ## Packaging & Publishing - Building Distribution Packages
-        Creating source distributions (`.tar.gz`) and wheel distributions (`.whl`).
-        Using `python -m build`.
-        """
-    },
-    {
-        "id": "packaging_pypi_twine",
-        "content": """
-        ## Packaging & Publishing - Distributing Platforms (PyPI)
-        **PyPI** (Python Package Index) using **`twine`** to upload packages.
-        """
-    },
-    {
-        "id": "packaging_github",
-        "content": """
-        ## Packaging & Publishing - Distributing Platforms (GitHub)
-        **GitHub** for source control and collaboration.
-        """
-    },
-    {
-        "id": "packaging_ci_cd",
-        "content": """
-        ## Packaging & Publishing - Continuous Integration/Continuous Deployment (CI/CD)
-        Automating testing, building, and publishing workflows (e.g., **GitHub Actions**, **GitLab CI**).
-        """
-    },
-    {
-        "id": "dependency_package_managers",
-        "content": """
-        ## Dependency Management and Installation - Package Managers
-        * **`pip`**: The standard package installer for Python.
-            * Basic usage: `pip install <package_name>`.
-            * Installing from `requirements.txt`: `pip install -r requirements.txt`.
-            * Upgrading packages: `pip install --upgrade <package_name>`.
-            * Uninstalling packages: `pip uninstall <package_name>`.
-        * **`conda`**: Cross-platform package and environment manager (especially for data science).
-            * Basic usage: `conda install <package_name>`.
-            * Environment management: `conda create -n myenv python=3.9`, `conda activate myenv`.
-        * **`poetry`**: A dependency management and packaging tool.
-            * Installation: `poetry install`.
-            * Adding dependencies: `poetry add <package_name>`.
-        * **`pipenv`**: Combines pip and virtualenv into a single tool.
-        """
-    },
-    {
-        "id": "dependency_virtual_environments",
-        "content": """
-        ## Dependency Management and Installation - Virtual Environments
-        **Crucial for isolating project dependencies.**
-        Instructions on creating and activating `venv` or `conda` environments.
-        Why to always install project-specific libraries within a virtual environment.
-        """
-    },
-    {
-        "id": "dependency_checking_availability",
-        "content": """
-        ## Dependency Management and Installation - Checking for Module Availability
-        Programmatic checks using `try-except ImportError`.
-        Command-line checks (e.g., `pip show <package_name>`).
-        """
-    },
-    {
-        "id": "dependency_installation_instructions",
-        "content": """
-        ## Dependency Management and Installation - Including Installation Instructions in Code/Documentation
-        Best practice: Always include a `requirements.txt` file (or `pyproject.toml` with dependencies) in your project.
-        Provide clear, step-by-step instructions for users to set up a virtual environment and install dependencies before running any code.
-        """
-    }
-]
 
 def interpret_and_execute_code(code_string: str) -> Dict[str, Any]:
     """
@@ -511,17 +137,25 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
     improvements = {}
 
     # 1. Automated Formatting (PEP 8 compliance)
-    try:
-        # `autopep8.fix_code` applies PEP 8 formatting
-        formatted_code = autopep8.fix_code(code_string)
-        if formatted_code != code_string:
-            improvements["formatted_code"] = formatted_code
-            improvements["formatting_suggestion"] = "Code has been automatically formatted for **PEP 8 compliance** using `autopep8`. Consistent formatting improves readability."
-        else:
-            improvements["formatting_suggestion"] = "Code already appears to be PEP 8 compliant (no changes by `autopep8`)."
-    except Exception as e:
-        improvements["formatting_suggestion"] = f"Could not apply automatic formatting: {e}"
-        logging.warning(f"Autopep8 failed: {e}")
+    if autopep8 is not None:
+        try:
+            formatted_code = autopep8.fix_code(code_string)
+            if formatted_code != code_string:
+                improvements["formatted_code"] = formatted_code
+                improvements["formatting_suggestion"] = (
+                    "Code has been automatically formatted for **PEP 8 compliance** using `autopep8`. Consistent formatting improves readability."
+                )
+            else:
+                improvements["formatting_suggestion"] = (
+                    "Code already appears to be PEP 8 compliant (no changes by `autopep8`)."
+                )
+        except Exception as e:
+            improvements["formatting_suggestion"] = f"Could not apply automatic formatting: {e}"
+            logging.warning(f"Autopep8 failed: {e}")
+    else:
+        improvements["formatting_suggestion"] = (
+            "autopep8 is not installed, so formatting suggestions are skipped."
+        )
 
     # Use AST (Abstract Syntax Tree) for more structural analysis
     try:
