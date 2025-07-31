@@ -398,6 +398,7 @@ python_knowledge_corpus: List[Dict[str, str]] = [
     }
 ]
 
+
 def interpret_and_execute_code(code_string: str) -> Dict[str, Any]:
     """
     Attempts to interpret and execute the given Python code string.
@@ -460,6 +461,7 @@ def interpret_and_execute_code(code_string: str) -> Dict[str, Any]:
             result["error"] = redirected_error.getvalue()
     return result
 
+
 def error_correct_code_suggestion(execution_result: Dict[str, Any]) -> str:
     """
     Provides a basic error correction suggestion based on the execution result.
@@ -516,6 +518,7 @@ def error_correct_code_suggestion(execution_result: Dict[str, Any]) -> str:
     suggestion += "\n\nFor more in-depth information on specific errors, refer to the official Python Language Reference: [https://docs.python.org/3/reference/index.html](https://docs.python.org/3/reference/index.html)"
     return suggestion
 
+
 def improve_code_suggestion(code_string: str) -> Dict[str, str]:
     """
     Provides suggestions for improving Python code based on common best practices
@@ -539,9 +542,11 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
                 improvements["formatted_code"] = formatted_code
                 improvements["formatting_suggestion"] = "Code has been automatically formatted for **PEP 8 compliance** using autopep8. Consistent formatting improves readability."
             else:
-                improvements["formatting_suggestion"] = "Code already appears to be PEP 8 compliant (no changes by autopep8)."
+                improvements[
+                    "formatting_suggestion"] = "Code already appears to be PEP 8 compliant (no changes by autopep8)."
         except Exception as e:
-            improvements["formatting_suggestion"] = f"Could not apply automatic formatting: {e}"
+            improvements[
+                "formatting_suggestion"] = f"Could not apply automatic formatting: {e}"
             logging.warning(f"Autopep8 failed: {e}")
     else:
         improvements["formatting_suggestion"] = (
@@ -578,11 +583,11 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
                     if isinstance(node.body[0].value.func, ast.Attribute) and node.body[0].value.func.attr == 'append':
                         improvements["refactoring_suggestion"] = improvements.get("refactoring_suggestion", "") + \
                             "If you are building a list using a for loop and .append(), consider using a more concise **list comprehension** for better readability and often performance."
-                        break # Only suggest once per code block
+                        break  # Only suggest once per code block
 
         # 4. File Handling Suggestion (using 'with' statement)
         if "open(" in code_string and ".close()" in code_string and "with open" not in code_string:
-             improvements["file_handling_suggestion"] = "When working with files, always use a with open(...) statement. It ensures the file is properly closed even if errors occur, preventing resource leaks."
+            improvements["file_handling_suggestion"] = "When working with files, always use a with open(...) statement. It ensures the file is properly closed even if errors occur, preventing resource leaks."
 
     except SyntaxError:
         improvements["analysis_warning"] = "Could not perform deeper code analysis due to syntax errors. Please fix syntax first."
@@ -607,12 +612,14 @@ def improve_code_suggestion(code_string: str) -> Dict[str, str]:
 
     return improvements
 
+
 def main() -> None:
     """
     Main function to demonstrate Python code interpretation, error correction, and improvement.
     This acts as a basic interactive console for the AI's capabilities.
     """
-    parser = argparse.ArgumentParser(description="Interactive Python Code Assistant")
+    parser = argparse.ArgumentParser(
+        description="Interactive Python Code Assistant")
     parser.add_argument(
         "--file",
         "-f",
@@ -630,7 +637,8 @@ def main() -> None:
             return
 
         execution_result = interpret_and_execute_code(code)
-        print(f"**Execution Status:** {execution_result['status'].replace('_', ' ').title()}")
+        print(
+            f"**Execution Status:** {execution_result['status'].replace('_', ' ').title()}")
         if execution_result["output"]:
             print("\n--- Captured Output (stdout) ---")
             print(execution_result["output"].strip())
@@ -666,10 +674,10 @@ def main() -> None:
         while True:
             try:
                 line = input()
-                if not line: # Empty line signals end of input
+                if not line:  # Empty line signals end of input
                     break
                 code_lines.append(line)
-            except EOFError: # Handle Ctrl+D (Unix) or Ctrl+Z (Windows)
+            except EOFError:  # Handle Ctrl+D (Unix) or Ctrl+Z (Windows)
                 print("\nEOF detected. Exiting Python Code Assistant. Goodbye!")
                 return
 
@@ -686,7 +694,8 @@ def main() -> None:
         print("\n--- Interpreting and Executing Code ---")
         execution_result = interpret_and_execute_code(user_code)
 
-        print(f"**Execution Status:** {execution_result['status'].replace('_', ' ').title()}")
+        print(
+            f"**Execution Status:** {execution_result['status'].replace('_', ' ').title()}")
         if execution_result["output"]:
             print("\n--- Captured Output (stdout) ---")
             print(execution_result["output"].strip())
@@ -706,13 +715,15 @@ def main() -> None:
             print("```python")
             print(improvement_suggestions["formatted_code"])
             print("```")
-            del improvement_suggestions["formatted_code"] # Remove to avoid printing it again in the list
+            # Remove to avoid printing it again in the list
+            del improvement_suggestions["formatted_code"]
 
         # Display other improvement suggestions
         for key, value in improvement_suggestions.items():
             print(f"- **{key.replace('_', ' ').title()}:** {value}")
 
         print("\n--- End of Analysis ---")
+
 
 if __name__ == "__main__":
     main()

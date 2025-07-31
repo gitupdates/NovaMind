@@ -30,17 +30,22 @@ def _posix_preexec(cpu_seconds: int, mem_mb: int):
             import signal
 
             if hasattr(resource, "RLIMIT_CPU"):
-                resource.setrlimit(resource.RLIMIT_CPU, (cpu_seconds, cpu_seconds))
+                resource.setrlimit(resource.RLIMIT_CPU,
+                                   (cpu_seconds, cpu_seconds))
             mem_bytes = mem_mb * 1024 * 1024
             if hasattr(resource, "RLIMIT_AS"):
                 resource.setrlimit(resource.RLIMIT_AS, (mem_bytes, mem_bytes))
             if hasattr(resource, "RLIMIT_FSIZE"):
-                resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
+                resource.setrlimit(resource.RLIMIT_FSIZE,
+                                   (16 * 1024 * 1024, 16 * 1024 * 1024))
             if hasattr(resource, "RLIMIT_NOFILE"):
                 try:
-                    cur_soft, cur_hard = resource.getrlimit(resource.RLIMIT_NOFILE)
-                    new_soft = min(256, cur_soft if cur_soft != resource.RLIM_INFINITY else 256)
-                    resource.setrlimit(resource.RLIMIT_NOFILE, (new_soft, cur_hard))
+                    cur_soft, cur_hard = resource.getrlimit(
+                        resource.RLIMIT_NOFILE)
+                    new_soft = min(256, cur_soft if cur_soft !=
+                                   resource.RLIM_INFINITY else 256)
+                    resource.setrlimit(
+                        resource.RLIMIT_NOFILE, (new_soft, cur_hard))
                 except Exception:
                     pass
             # ensure SIGPIPE is default (avoid BrokenPipe crashes)
@@ -210,11 +215,16 @@ def execute_in_subprocess(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run Python snippets safely")
-    parser.add_argument("--file", "-f", type=str, help="File containing Python code")
-    parser.add_argument("--stdin-data", type=str, default=None, help="Data passed to snippet's stdin")
-    parser.add_argument("--timeout", type=int, default=5, help="Timeout in seconds")
-    parser.add_argument("--cpu-seconds", type=int, default=5, help="CPU time limit for the snippet")
-    parser.add_argument("--mem-mb", type=int, default=128, help="Memory limit in MB for the snippet")
+    parser.add_argument("--file", "-f", type=str,
+                        help="File containing Python code")
+    parser.add_argument("--stdin-data", type=str, default=None,
+                        help="Data passed to snippet's stdin")
+    parser.add_argument("--timeout", type=int, default=5,
+                        help="Timeout in seconds")
+    parser.add_argument("--cpu-seconds", type=int, default=5,
+                        help="CPU time limit for the snippet")
+    parser.add_argument("--mem-mb", type=int, default=128,
+                        help="Memory limit in MB for the snippet")
     args = parser.parse_args()
 
     if args.file:
