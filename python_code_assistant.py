@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""Python Code Assistant v1.1.0
+
+Provides basic execution, formatting, and improvement suggestions for
+Python code. Version 1.1 adds a formatting option and version flag.
+"""
 
 import io
 import sys
@@ -12,6 +17,8 @@ except ImportError:  # Graceful fallback if autopep8 is missing
     autopep8 = None
 import ast
 from typing import Dict, Any, List
+
+VERSION = "1.1.0"
 
 # Configure logging to show information messages.
 # This helps in debugging the assistant's own operations.
@@ -626,6 +633,16 @@ def main() -> None:
         type=str,
         help="Run code from the specified file instead of starting the interactive console.",
     )
+    parser.add_argument(
+        "--format",
+        action="store_true",
+        help="Format the provided file using autopep8 and output the result",
+    )
+    parser.add_argument(
+        "--version",
+        action="version",
+        version=f"Python Code Assistant {VERSION}",
+    )
     args = parser.parse_args()
 
     if args.file:
@@ -634,6 +651,13 @@ def main() -> None:
                 code = f.read()
         except OSError as exc:
             print(f"Failed to read file: {exc}")
+            return
+
+        if args.format:
+            if AUTOPEP8_AVAILABLE:
+                print(autopep8.fix_code(code))
+            else:
+                print("autopep8 is not installed; cannot format code")
             return
 
         execution_result = interpret_and_execute_code(code)

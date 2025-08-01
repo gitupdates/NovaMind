@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Interactive Snippet Assistant v3.7.0
+"""Interactive Snippet Assistant v3.8.0
 
 Runs Python snippets in a subprocess with basic resource limits and
-provides simple error diagnostics.
+provides simple error diagnostics. Version 3.8 adds optional JSON output
+and custom interpreter selection for greater flexibility.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import sys
 import tempfile
 from typing import Any, Dict, Optional, Tuple
 
-VERSION = "3.7.0"
+VERSION = "3.8.0"
 
 # Precompile for faster and more reliable error-type extraction
 ERROR_LINE_RE = re.compile(r"^([A-Za-z_][\w\.]*):\s*(.*)$")
@@ -145,13 +146,14 @@ def execute_in_subprocess(
     stdin_data: str | bytes | None = None,
     cpu_seconds: int = 5,
     mem_mb: int = 128,
+    python_exe: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Run the given code in a separate Python process and capture results."""
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as tmp:
         tmp.write(src)
         tmp_path = tmp.name
 
-    python_exe = sys.executable
+    python_exe = python_exe or sys.executable
     cmd = [python_exe, "-I", "-B", tmp_path]
     env = {
         "PATH": os.environ.get("PATH", ""),
@@ -219,6 +221,12 @@ def main() -> None:
                         help="File containing Python code")
     parser.add_argument("--stdin-data", type=str, default=None,
                         help="Data passed to snippet's stdin")
+    parser.add_argument("--python-exe", type=str, default=None,
+                        help="Python interpreter to run the snippet")
+    parser.add_argument("--json", action="store_true",
+                        help="Output execution result as JSON")
+    parser.add_argument("--version", action="version",
+                        version=f"Interactive Snippet Assistant {VERSION}")
     parser.add_argument("--timeout", type=int, default=5,
                         help="Timeout in seconds")
     parser.add_argument("--cpu-seconds", type=int, default=5,
@@ -246,7 +254,14 @@ def main() -> None:
         stdin_data=args.stdin_data,
         cpu_seconds=args.cpu_seconds,
         mem_mb=args.mem_mb,
+        python_exe=args.python_exe,
     )
+
+    if args.json:
+        import json
+        print(json.dumps(result, indent=2))
+        return
+
     print(result["stdout"], end="")
     if result["stderr"]:
         print(result["stderr"], file=sys.stderr, end="")

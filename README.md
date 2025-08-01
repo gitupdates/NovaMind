@@ -37,8 +37,9 @@ NovaMind/
 
 ## Python Code Assistant
 
-The repository includes python_code_assistant.py, an optional utility that
-executes and analyzes snippets of Python code. To run it interactively:
+The repository includes python_code_assistant.py **v1.1**, an optional
+utility that executes and analyzes snippets of Python code. To run it
+interactively:
 
 ```bash
 python python_code_assistant.py
@@ -48,6 +49,13 @@ To analyze a file in one shot:
 
 ```bash
 python python_code_assistant.py --file path/to/script.py
+```
+
+Use `--format` to print a PEP&nbsp;8 formatted version of the file when
+autopep8 is available:
+
+```bash
+python python_code_assistant.py --file path/to/script.py --format
 ```
 
 ### Dependencies
@@ -70,18 +78,19 @@ pip install autopep8
 
 ## Interactive Snippet Assistant
 
-The interactive_snippet_assistant_v3_7.py script runs Python snippets in a
-sandboxed subprocess with resource limits. Use it similarly to the code
+Version 3.8 of the interactive snippet assistant adds optional JSON output and
+the ability to select a custom Python interpreter.
+Run the `interactive_snippet_assistant_v3_8.py` script similarly to the code
 assistant:
 
 ```bash
-python interactive_snippet_assistant_v3_7.py --file my_script.py
+python interactive_snippet_assistant_v3_8.py --file my_script.py
 ```
 
 You can also pipe code via standard input:
 
 ```bash
-echo "print('hi')" | python interactive_snippet_assistant_v3_7.py
+echo "print('hi')" | python interactive_snippet_assistant_v3_8.py
 ```
 
 Use --stdin-data to pass input to the snippet and --timeout to control the
@@ -92,8 +101,11 @@ execution timeout. You can also change resource limits:
 --mem-mb <N>       # Memory limit in megabytes (default 128)
 ```
 
+Additional options include `--json` to emit structured output and
+`--python-exe` to choose the interpreter.
+
 For example:
 
 ```bash
-python interactive_snippet_assistant_v3_7.py --file script.py --cpu-seconds 10 --mem-mb 256
+python interactive_snippet_assistant_v3_8.py --file script.py --cpu-seconds 10 --mem-mb 256 --json
 ```
