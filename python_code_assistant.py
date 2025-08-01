@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Python Code Assistant v1.1.0
+"""Python Code Assistant v1.2.0
 
 Provides basic execution, formatting, and improvement suggestions for
-Python code. Version 1.1 adds a formatting option and version flag.
+Python code. Version 1.2 adds a version flag and optional formatting
+support using autopep8.
 """
 
 import io
@@ -18,7 +19,7 @@ except ImportError:  # Graceful fallback if autopep8 is missing
 import ast
 from typing import Dict, Any, List
 
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 # Configure logging to show information messages.
 # This helps in debugging the assistant's own operations.
